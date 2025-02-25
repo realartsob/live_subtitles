@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Subtitles with Real-Time Translation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #00ff2a; /* Sets entire page background */
+      color: #ffffff; /* Ensures text is readable */
+      text-align: center;
+    }
+
+    /* General styles for top boxes */
+    #subtitles, #translation {
+      font-size: 35px;
+      font-weight: bold;
+      color: #ffffff; /* White text for contrast */
+      margin-top: 20px;
+      border: 1px solid #00ff2a;
+      padding: 10px;
+      width: 50%;
+      height: 70px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      display: flex;
+      flex-direction: column-reverse;
+    }
+
+    #subtitles { background-color: #00ff2a; } /* Green for English */
+    #translation { background-color: #00ff2a; } /* Orange for Spanish */
+
+    /* Separate styles for bottom boxes */
+    #subtitlesCopy, #translationCopy {
+      font-size: 35px;
+      font-weight: bold;
+      color: #ffffff; /* White text for contrast */
+      margin-top: 20px;
+      border: 1px solid #00ff2a;
+      padding: 10px;
+      width: 30%;
+      height: 70px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      display: flex;
+      flex-direction: column-reverse;
+    }
+
+    #subtitlesCopy { background-color: #00ff2a; } /* Light green for English copy */
+    #translationCopy { background-color: #00ff2a; } /* Light orange for Spanish copy */
+
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #333333; /* Dark button background */
+      color: #ffffff; /* White button text */
+      border: 1px solid #555555; /* Button border */
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #c4c4c4; /* Slightly lighter hover effect */
+    }
+
+    /* Media Query: Styles for phones in portrait mode */
+    @media only screen and (max-width: 600px) {
+      #subtitles, #translation {
+        font-size: 25px;
+        height: 55px; /* Adjusted for smaller screens */
+      }
+
+      #subtitlesCopy, #translationCopy {
+        font-size: 18px;
+        width: 95%; /* Further reduced width for smaller screens */
+        height: 45px; /* Reduced height */
+        padding: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Live Subtitles with Real-Time Translation</h1>
+  <button id="startBtn">Start Subtitles</button>
+  <button id="stopBtn" disabled>Stop Subtitles</button>
+
+  <!-- Boxes for English text and Spanish text -->
+  <div id="subtitles">English text will appear here</div>
+  <div id="translation">Spanish text will appear here</div>
+
+  <!-- Copies of the first two boxes for mobile styling -->
+  <div id="subtitlesCopy">English (copy) text will appear here</div>
+  <div id="translationCopy">Spanish (copy) text will appear here</div>
+
+  <script>
+    let lastSendTime = 0;
+    const SEND_INTERVAL = 150; // 150ms between requests
+
+    let recognition;
+    let isListening = false;
+    let audioStream = null;
+    let noSpeechTimeout = null;
+    const subtitles = document.getElementById('subtitles');
+    const translation = document.getElementById('translation');
+    const subtitlesCopy = document.getElementById('subtitlesCopy');
+    const translationCopy = document.getElementById('translationCopy');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+
+    let wordBuffer = []; // Stores words before displaying
+    let translationBuffer = []; // Stores translated words
+    const WORD_LIMIT = 9; // Number of words per display chunk
+    const DISPLAY_TIME = 3000; // 3 seconds per chunk
+    let isDisplaying = false; // Controls chunk display
+
+    console.log("[DEBUG] JavaScript Loaded");
+
+    // 🛠 Translate full 9-word chunk before showing
+    async function translateToSpanish(text) {
+        try {
+            const response = await fetch(
+                `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=${encodeURIComponent(text)}`
+            );
+            const data = await response.json();
+            return data[0].map((item) => item[0]).join("");
+        } catch (error) {
+            console.error("[ERROR] Translation failed:", error);
+            return "Translation failed";
+        }
+    }
+
+    // 🟢 **Processes Word Buffer Only When We Have 9 Words**
+    async function processBuffer() {
+        if (isDisplaying || wordBuffer.length < WORD_LIMIT) return; // Wait for 9 words
+        isDisplaying = true;
+        let chunk = wordBuffer.splice(0, WORD_LIMIT).join(" "); // Extract 9 words
+        // 🟠 **Translate the entire 9-word chunk**
+        let translatedChunk = await translateToSpanish(chunk);
+        // Store remaining words back in buffer (if some remain after extraction)
+        if (wordBuffer.length > 0) {
+            wordBuffer.unshift(...wordBuffer.splice(0)); // Ensure FIFO order is kept
+        }
+        // ✅ **Update UI after translation is ready**
+        subtitles.innerText = chunk;
+        subtitlesCopy.innerText = chunk;
+        translation.innerText = translatedChunk;
+        translationCopy.innerText = translatedChunk;
+
+        setTimeout(() => {
+            isDisplaying = false;
+            processBuffer(); // Process the next chunk if available
+        }, DISPLAY_TIME);
+    }
+
+    // 🛠 Initialize Speech Recognition
+    if ("webkitSpeechRecognition" in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.lang = "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = false; // Only process finalized results
+
+        recognition.onstart = () => {
+            console.log("[DEBUG] Speech Recognition Started");
+            clearTimeout(noSpeechTimeout); // Reset inactivity timer
+        };
+
+        recognition.onerror = (event) => {
+            console.error("[ERROR] Speech Recognition Error:", event.error);
+        };
+
+        recognition.onend = () => {
+            console.log("[DEBUG] Speech Recognition Ended");
+
+            if (isListening && audioStream) {
+                console.log("[DEBUG] Restarting Speech Recognition...");
+                recognition.start();
+            } else {
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        };
+
+        recognition.onresult = async (event) => {
+            clearTimeout(noSpeechTimeout); // Reset inactivity timeout
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    let sentence = event.results[i][0].transcript.trim();
+                    console.log(`[DEBUG] Finalized Sentence: ${sentence}`);
+
+                    let words = sentence.split(" ");
+                    wordBuffer.push(...words); // Add words to buffer
+
+                    processBuffer(); // Check if we have 9 words to display
+                }
+            }
+
+            // 🔥 **Restart recognition if no speech detected for 10 seconds**
+            noSpeechTimeout = setTimeout(() => {
+                console.log("[DEBUG] No speech detected for 10s. Restarting recognition...");
+                recognition.stop();
+                setTimeout(() => recognition.start(), 500);
+            }, 10000);
+        };
+
+        startBtn.addEventListener("click", () => {
+            console.log("[DEBUG] Start Button Clicked");
+            sessionStorage.setItem("wasListening", "true");
+            if (!audioStream) {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then((stream) => {
+                        audioStream = stream;
+                        recognition.start();
+                        isListening = true;
+                        startBtn.disabled = true;
+                        stopBtn.disabled = false;
+                    })
+                    .catch((err) => {
+                        console.error("[ERROR] Microphone Access Denied:", err);
+                        alert("Please allow microphone access.");
+                    });
+            } else {
+                recognition.start();
+                isListening = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            }
+        });
+
+        stopBtn.addEventListener("click", () => {
+            console.log("[DEBUG] Stop Button Clicked");
+            recognition.stop();
+            isListening = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            clearTimeout(noSpeechTimeout); // Stop tracking inactivity
+        });
+
+    } else {
+        alert("Your browser does not support webkitSpeechRecognition.");
+    }
+  </script>
+</body>
+</html>
