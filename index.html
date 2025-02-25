@@ -96,9 +96,6 @@
   <div id="translationCopy">Spanish (copy) text will appear here</div>
 
   <script>
-    let lastSendTime = 0;
-    const SEND_INTERVAL = 150; // 150ms between requests
-
     let recognition;
     let isListening = false;
     let audioStream = null;
@@ -111,7 +108,6 @@
     const stopBtn = document.getElementById('stopBtn');
 
     let wordBuffer = []; // Stores words before displaying
-    let translationBuffer = []; // Stores translated words
     const WORD_LIMIT = 9; // Number of words per display chunk
     const DISPLAY_TIME = 3000; // 3 seconds per chunk
     let isDisplaying = false; // Controls chunk display
@@ -139,10 +135,6 @@
         let chunk = wordBuffer.splice(0, WORD_LIMIT).join(" "); // Extract 9 words
         // 🟠 **Translate the entire 9-word chunk**
         let translatedChunk = await translateToSpanish(chunk);
-        // Store remaining words back in buffer (if some remain after extraction)
-        if (wordBuffer.length > 0) {
-            wordBuffer.unshift(...wordBuffer.splice(0)); // Ensure FIFO order is kept
-        }
         // ✅ **Update UI after translation is ready**
         subtitles.innerText = chunk;
         subtitlesCopy.innerText = chunk;
