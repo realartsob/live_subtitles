@@ -84,6 +84,22 @@
 </head>
 <body>
   <h1>Live Subtitles with Real-Time Translation</h1>
+  <label for="sourceLang">Source Language:</label>
+  <select id="sourceLang">
+    <option value="en">English</option>
+    <option value="es">Spanish</option>
+    <option value="fr">French</option>
+    <option value="de">German</option>
+    <!-- Add more languages as needed -->
+  </select>
+  <label for="targetLang">Target Language:</label>
+  <select id="targetLang">
+    <option value="es">Spanish</option>
+    <option value="en">English</option>
+    <option value="fr">French</option>
+    <option value="de">German</option>
+    <!-- Add more languages as needed -->
+  </select>
   <button id="startBtn">Start Subtitles</button>
   <button id="stopBtn" disabled>Stop Subtitles</button>
 
@@ -106,6 +122,8 @@
     const translationCopy = document.getElementById('translationCopy');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
+    const sourceLang = document.getElementById('sourceLang');
+    const targetLang = document.getElementById('targetLang');
 
     let wordBuffer = []; // Stores words before displaying
     const WORD_LIMIT = 9; // Number of words per display chunk
@@ -115,10 +133,10 @@
     console.log("[DEBUG] JavaScript Loaded");
 
     // 🛠 Translate full 9-word chunk before showing
-    async function translateToSpanish(text) {
+    async function translateText(text, source, target) {
         try {
             const response = await fetch(
-                `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=${encodeURIComponent(text)}`
+                `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(text)}`
             );
             const data = await response.json();
             return data[0].map((item) => item[0]).join("");
@@ -134,7 +152,7 @@
         isDisplaying = true;
         let chunk = wordBuffer.splice(0, WORD_LIMIT).join(" "); // Extract 9 words
         // 🟠 **Translate the entire 9-word chunk**
-        let translatedChunk = await translateToSpanish(chunk);
+        let translatedChunk = await translateText(chunk, sourceLang.value, targetLang.value);
         // ✅ **Update UI after translation is ready**
         subtitles.innerText = chunk;
         subtitlesCopy.innerText = chunk;
