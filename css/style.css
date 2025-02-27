@@ -7,6 +7,25 @@ body {
   text-align: center;
 }
 
+/* Containers for TTS, Pitch, Rate, etc. */
+.toggle-container,
+.settings-container,
+.control-container {
+  margin: 20px;
+  font-size: 16px;
+}
+
+/* Status and Error Messages */
+#status,
+#errorMsg {
+  font-size: 16px;
+  margin-top: 10px;
+  padding: 5px;
+  background-color: #333333;
+  color: #ffffff;
+  border-radius: 5px;
+}
+
 /* Chat Container and Messages */
 .chat-container {
   max-width: 80%;
@@ -22,23 +41,15 @@ body {
   margin: 10px 0;
   padding: 10px;
   border-radius: 5px;
+  color: #ffffff;
 }
 .user {
-  background-color: #555555;
+  background-color: #444444;
   text-align: right;
 }
 .ai {
-  background-color: #777777;
+  background-color: #555555;
   text-align: left;
-}
-
-/* Status and Error Messages */
-#status, #errorMsg {
-  font-size: 16px;
-  margin-top: 10px;
-  padding: 5px;
-  background-color: #222;
-  border-radius: 5px;
 }
 
 /* Buttons, Inputs, and Controls */
@@ -46,15 +57,15 @@ button {
   margin: 10px;
   padding: 10px 20px;
   font-size: 16px;
-  background-color: #333333;
+  background-color: #444444;
   color: #ffffff;
   border: 1px solid #555555;
   border-radius: 5px;
   cursor: pointer;
 }
 button:hover {
-  background-color: #c4c4c4;
-  color: #000000;
+  background-color: #666666;
+  color: #ffffff;
 }
 select,
 input[type="range"],
@@ -62,18 +73,10 @@ input[type="text"] {
   margin: 10px;
   padding: 10px;
   font-size: 16px;
-  background-color: #333333;
+  background-color: #444444;
   color: #ffffff;
   border: 1px solid #555555;
   border-radius: 5px;
-}
-
-/* Containers for TTS, Pitch, Rate, etc. */
-.toggle-container,
-.settings-container,
-.control-container {
-  margin: 20px;
-  font-size: 16px;
 }
 label {
   margin-right: 10px;
@@ -90,10 +93,10 @@ label {
   flex: 1;
 }
 
-/* RSS Feed Controls Styles */
+/* RSS Feed Controls */
 .rss-feed-controls {
   width: 100%;
-  background-color: #555;
+  background-color: #333333;
   padding: 10px;
   box-sizing: border-box;
   margin-bottom: 10px;
@@ -102,24 +105,24 @@ label {
   width: 60%;
   padding: 5px;
   font-size: 14px;
-  border: 1px solid #777;
+  border: 1px solid #777777;
   border-radius: 3px;
   margin-right: 10px;
-  background-color: #333;
-  color: #fff;
+  background-color: #444444;
+  color: #ffffff;
 }
 #addRssFeedBtn {
   padding: 5px 10px;
   font-size: 14px;
-  border: none;
+  border: 1px solid #555555;
   border-radius: 3px;
-  background-color: #888;
-  color: #fff;
+  background-color: #444444;
+  color: #ffffff;
   cursor: pointer;
 }
 #addRssFeedBtn:hover {
-  background-color: #aaa;
-  color: #000;
+  background-color: #666666;
+  color: #ffffff;
 }
 .feed-item {
   margin-top: 5px;
@@ -132,23 +135,23 @@ label {
   margin-left: 10px;
   padding: 2px 5px;
   font-size: 12px;
-  border: none;
+  border: 1px solid #555555;
   border-radius: 3px;
-  background-color: #cc0000;
-  color: #fff;
+  background-color: #444444;
+  color: #ffffff;
   cursor: pointer;
 }
 .feed-item button:hover {
-  background-color: #ff0000;
+  background-color: #666666;
 }
 
-/* News Ticker Styles */
+/* News Ticker */
 .news-ticker {
   width: 100%;
   overflow: hidden;
   white-space: nowrap;
-  background-color: #444;
-  color: #fff;
+  background-color: #333333;
+  color: #ffffff;
   padding: 10px;
   box-sizing: border-box;
   margin-bottom: 20px;
@@ -157,17 +160,22 @@ label {
   display: inline-block;
   padding-left: 100%;
   animation: ticker 20s linear infinite;
+  color: #ffffff;
 }
 @keyframes ticker {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 .headline {
-  color: #fff;
+  color: #ffffff;
   text-decoration: underline;
   cursor: pointer;
   margin-right: 20px;
 }
 .headline:hover {
-  color: #ccc;
+  color: #cccccc;
 }
