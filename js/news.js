@@ -16,34 +16,32 @@ export async function initNewsTicker() {
 }
 
 async function fetchFeedHeadlines(feedUrl) {
-  // List of proxies to try in order
-  const proxyUrls = [
-    "https://thingproxy.freeboard.io/fetch/",
-    "https://api.allorigins.hexocode.repl.co/get?disableCache=true&url="
-  ];
-  for (const proxyUrl of proxyUrls) {
-    try {
-      const response = await fetch(proxyUrl + feedUrl);
-      const text = await response.text();
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(text, "text/xml");
-      const items = xmlDoc.querySelectorAll("item");
-      const headlines = [];
-      items.forEach((item, index) => {
-        // Limit to first 5 headlines per feed
-        if (index < 5) {
-          const title = item.querySelector("title")?.textContent || "No Title";
-          const link = item.querySelector("link")?.textContent || "";
-          headlines.push({ title, link });
-        }
-      });
-      return headlines;
-    } catch (error) {
-      console.error("Error fetching feed via proxy:", proxyUrl, feedUrl, error);
-      // Try the next proxy
+  try {
+    // Use the rss2json API to fetch and convert the RSS feed to JSON
+    const response = await fetch(
+      "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(feedUrl)
+    );
+    const data = await response.json();
+    if (data.status !== "ok") {
+      console.error("Error fetching feed via rss2json:", data);
+      return [];
     }
+    const items = data.items;
+    const headlines = [];
+    items.forEach((item, index) => {
+      // Limit to the first 5 headlines per feed
+      if (index < 5) {
+        headlines.push({
+          title: item.title,
+          link: item.link
+        });
+      }
+    });
+    return headlines;
+  } catch (error) {
+    console.error("Error fetching rss feed using rss2json:", feedUrl, error);
+    return [];
   }
-  return [];
 }
 
 function populateNewsTicker(headlines) {
@@ -62,7 +60,7 @@ function populateNewsTicker(headlines) {
       headlineLink.href = "#";
       headlineLink.classList.add("headline");
       headlineLink.innerText = item.title;
-      // When clicked, add the news story into the chat
+      // On click, add the news story into the chat
       headlineLink.addEventListener("click", (e) => {
         e.preventDefault();
         if (window.processUserInput) {
