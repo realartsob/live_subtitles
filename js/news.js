@@ -1,4 +1,4 @@
-// news.js
+import { convertRssToJson } from './api.js';
 
 let rssFeeds = ["https://feeds.bbci.co.uk/news/rss.xml"]; // default feed
 
@@ -17,11 +17,8 @@ export async function initNewsTicker() {
 
 async function fetchFeedHeadlines(feedUrl) {
   try {
-    // Use the rss2json API to fetch and convert the RSS feed to JSON
-    const response = await fetch(
-      "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(feedUrl)
-    );
-    const data = await response.json();
+    // Use the convertRssToJson function from api.js to fetch and convert the RSS feed to JSON
+    const data = await convertRssToJson(feedUrl);
     if (data.status !== "ok") {
       console.error("Error fetching feed via rss2json:", data);
       return [];
@@ -39,7 +36,7 @@ async function fetchFeedHeadlines(feedUrl) {
     });
     return headlines;
   } catch (error) {
-    console.error("Error fetching rss feed using rss2json:", feedUrl, error);
+    console.error("Error fetching RSS feed using rss2json:", feedUrl, error);
     return [];
   }
 }
