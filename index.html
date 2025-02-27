@@ -8,7 +8,7 @@
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
-      background-color: #2b2b2b;
+      background-color: #202020;
       color: #ffffff;
       text-align: center;
     }
@@ -55,7 +55,7 @@
     button:hover {
       background-color: #c4c4c4;
     }
-    select, input[type="range"] {
+    select, input[type="range"], input[type="text"] {
       margin: 10px;
       padding: 10px;
       font-size: 16px;
@@ -70,6 +70,16 @@
     }
     label {
       margin-right: 10px;
+    }
+    /* New styles for text input container */
+    .text-input-container {
+      max-width: 80%;
+      margin: 10px auto;
+      display: flex;
+      justify-content: center;
+    }
+    .text-input-container input {
+      flex: 1;
     }
   </style>
 </head>
@@ -119,6 +129,12 @@
   <div class="chat-container" id="chatHistory">
     <!-- Chat messages will be appended here -->
   </div>
+  
+  <!-- New Text Input Container -->
+  <div class="text-input-container">
+    <input type="text" id="textInput" placeholder="Type your message here..." />
+    <button id="sendBtn">Send</button>
+  </div>
 
   <script>
     let recognition;
@@ -142,6 +158,8 @@
     const rateRange = document.getElementById('rateRange');
     const pitchValue = document.getElementById('pitchValue');
     const rateValue = document.getElementById('rateValue');
+    const textInput = document.getElementById('textInput');
+    const sendBtn = document.getElementById('sendBtn');
 
     // Update pitch and rate display and save to localStorage
     pitchRange.addEventListener('input', () => {
@@ -214,6 +232,32 @@
       statusDiv.innerText = 'Settings have been reset.';
     });
 
+    // Process text input (from typing)
+    async function processTextInput() {
+      const text = textInput.value.trim();
+      if (text) {
+        appendMessage("You: " + text, "user");
+        statusDiv.innerText = "Processing your input...";
+        console.log("Text input:", text);
+        try {
+          const aiResponse = await getAIResponse(text);
+          appendMessage("AI: " + aiResponse, "ai");
+          speak(aiResponse);
+        } catch (error) {
+          errorMsgDiv.innerText = "Error fetching AI response.";
+        }
+        textInput.value = ""; // Clear the input field
+      }
+    }
+
+    // Add event listener for the Send button and Enter key on the text input
+    sendBtn.addEventListener('click', processTextInput);
+    textInput.addEventListener('keyup', (event) => {
+      if (event.key === "Enter") {
+        processTextInput();
+      }
+    });
+
     // Initialize Speech Recognition if supported
     if ("webkitSpeechRecognition" in window) {
       recognition = new webkitSpeechRecognition();
@@ -260,7 +304,6 @@
 
       recognition.onresult = async (event) => {
         lastErrorWasNoSpeech = false;
-        // Cancel TTS if user speaks and interruption is enabled.
         if (interruptToggle.checked && isTTSActive) {
           window.speechSynthesis.cancel();
           isTTSActive = false;
