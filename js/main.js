@@ -1,7 +1,6 @@
 import { loadSettings } from './settings.js';
 import { populateVoiceList, initVoiceSelection } from './voiceModel.js';
 import { initSpeechRecognition } from './speech.js';
-import { initChat, processTextInput } from './chat.js';
 import { loadModels } from './api.js';
 
 document.addEventListener('DOMContentLoaded', () => {
