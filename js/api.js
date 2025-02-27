@@ -57,7 +57,7 @@ export async function getAIResponse(prompt) {
 // Updated function: Convert an RSS feed URL to JSON using the rss2json API.
 // It builds the request URL with the required parameters.
 export async function convertRssToJson(rssUrl, count = 10, order_by = '', order_dir = '') {
-  const apiKey = "2mbclpf6gedmku79ixilmwuxtlzacdk72qop3sis";
+  const apiKey = "2mbclpf6gedmku79ixilmwuxtlzacdk72qop3sis"; // Ensure this is valid
   let endpoint = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&api_key=${apiKey}&count=${count}`;
   if (order_by) {
     endpoint += `&order_by=${order_by}`;
@@ -77,3 +77,4 @@ export async function convertRssToJson(rssUrl, count = 10, order_by = '', order_
     throw error;
   }
 }
+
