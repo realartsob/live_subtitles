@@ -43,10 +43,13 @@ export function initSpeechRecognition() {
           let sentence = event.results[i][0].transcript.trim();
           if (sentence) {
             const chatHistory = document.getElementById('chatHistory');
-            const messageElem = document.createElement('div');
-            messageElem.classList.add('message', 'user');
-            messageElem.innerText = "You: " + sentence;
-            chatHistory.appendChild(messageElem);
+            const lastMessage = chatHistory.lastElementChild;
+            if (!lastMessage || lastMessage.innerText !== `You: ${sentence}`) {
+              const messageElem = document.createElement('div');
+              messageElem.classList.add('message', 'user');
+              messageElem.innerText = `You: ${sentence}`;
+              chatHistory.appendChild(messageElem);
+            }
             document.getElementById('status').innerText = "Processing your input...";
             if (window.processUserInput) {
               await window.processUserInput(sentence);
