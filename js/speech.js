@@ -41,9 +41,15 @@ export function initSpeechRecognition() {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           let sentence = event.results[i][0].transcript.trim();
-          // Process only if the sentence is new
-          if (sentence && sentence !== lastTranscription) {
-            lastTranscription = sentence;
+          if (sentence) {
+            const chatHistory = document.getElementById('chatHistory');
+            const lastMessage = chatHistory.lastElementChild;
+            if (!lastMessage || lastMessage.innerText !== `You: ${sentence}`) {
+              const messageElem = document.createElement('div');
+              messageElem.classList.add('message', 'user');
+              messageElem.innerText = `You: ${sentence}`;
+              chatHistory.appendChild(messageElem);
+            }
             document.getElementById('status').innerText = "Processing your input...";
             if (window.processUserInput) {
               await window.processUserInput(sentence);
@@ -52,7 +58,7 @@ export function initSpeechRecognition() {
         }
       }
     };
-
+    
     document.getElementById('startBtn').addEventListener("click", () => {
       isListening = true;
       recognition.start();
