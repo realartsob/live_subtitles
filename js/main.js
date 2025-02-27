@@ -1,6 +1,6 @@
 import { loadSettings } from './settings.js';
 import { populateVoiceList, initVoiceSelection } from './voiceModel.js';
-import { initSpeechRecognition } from './speech.js';
+import { initSpeechRecognition, initChat, processTextInput } from './speech.js'; // Moved initChat and processTextInput imports here
 import { loadModels } from './api.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   populateVoiceList();
   initVoiceSelection();
   initSpeechRecognition();
-  initChat();
+  initChat(); // Initialize chat here
   loadModels();
 
   document.getElementById('sendBtn').addEventListener('click', processTextInput);
