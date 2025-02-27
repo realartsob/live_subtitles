@@ -17,22 +17,20 @@ export async function initNewsTicker() {
 
 async function fetchFeedHeadlines(feedUrl) {
   try {
-    // Use convertRssToJson to fetch and convert the RSS feed to JSON using your API key
-    const data = await convertRssToJson(feedUrl);
+    // Fetch and convert the RSS feed to JSON using the rss2json API.
+    // The call now limits the results to 5 items per feed.
+    const data = await convertRssToJson(feedUrl, 5);
     if (data.status !== "ok") {
       console.error("Error fetching feed via rss2json:", data);
       return [];
     }
     const items = data.items;
     const headlines = [];
-    items.forEach((item, index) => {
-      // Limit to the first 5 headlines per feed
-      if (index < 5) {
-        headlines.push({
-          title: item.title,
-          link: item.link
-        });
-      }
+    items.forEach(item => {
+      headlines.push({
+        title: item.title,
+        link: item.link
+      });
     });
     return headlines;
   } catch (error) {

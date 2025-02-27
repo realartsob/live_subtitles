@@ -54,12 +54,18 @@ export async function getAIResponse(prompt) {
   return data;
 }
 
-// New function: Convert an RSS feed URL to JSON using your RSS2JSON API key
-export async function convertRssToJson(rssUrl, detailed = false) {
+// Updated function: Convert an RSS feed URL to JSON using the rss2json API.
+// It builds the request URL with the required parameters.
+export async function convertRssToJson(rssUrl, count = 10, order_by = '', order_dir = '') {
   const apiKey = "2mbclpf6gedmku79ixilmwuxtlzacdk72qop3sis";
-  const endpoint = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&api_key=${apiKey}&detailed=${detailed}`;
+  let endpoint = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&api_key=${apiKey}&count=${count}`;
+  if (order_by) {
+    endpoint += `&order_by=${order_by}`;
+  }
+  if (order_dir) {
+    endpoint += `&order_dir=${order_dir}`;
+  }
   try {
-    // Force CORS mode in case the endpoint supports it
     const response = await fetch(endpoint, { mode: 'cors' });
     if (!response.ok) {
       throw new Error(`RSS2JSON API error: ${response.status} ${response.statusText}`);
