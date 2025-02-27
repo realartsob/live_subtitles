@@ -1,156 +1,191 @@
-// Define a settings object to hold all user settings.
-let userSettings = {
+// Global settings object and state variables
+var userSettings = {
   pitch: 1,
   rate: 1,
-  selectedVoice: null,
+  selectedVoice: "No Voice",
   webSearchEnabled: false,
   interruptEnabled: true,
-  model: null
+  model: ""
 };
 
-// Save the settings object to localStorage
+var recognition;
+var isListening = false;
+var currentUtterance = null;
+var isTTSActive = false;
+var lastErrorWasNoSpeech = false;
+
+// DOM element references
+var startBtn = document.getElementById("startBtn");
+var stopBtn = document.getElementById("stopBtn");
+var stopTTSBtn = document.getElementById("stopTTSBtn");
+var clearBtn = document.getElementById("clearBtn");
+var resetStorageBtn = document.getElementById("resetStorageBtn");
+var statusDiv = document.getElementById("status");
+var errorMsgDiv = document.getElementById("errorMsg");
+var chatHistory = document.getElementById("chatHistory");
+var voiceSelect = document.getElementById("voiceSelect");
+var modelSelect = document.getElementById("modelSelect");
+var pitchRange = document.getElementById("pitchRange");
+var rateRange = document.getElementById("rateRange");
+var pitchValue = document.getElementById("pitchValue");
+var rateValue = document.getElementById("rateValue");
+var webSearchToggle = document.getElementById("webSearchToggle");
+var interruptToggle = document.getElementById("interruptToggle");
+var textInput = document.getElementById("textInput");
+var sendBtn = document.getElementById("sendBtn");
+
+// Save settings to localStorage
 function saveSettings() {
-  // Update the settings object with current values.
   userSettings.pitch = pitchRange.value;
   userSettings.rate = rateRange.value;
   userSettings.selectedVoice = voiceSelect.value;
-  userSettings.webSearchEnabled = document.getElementById('webSearchToggle').checked;
-  userSettings.interruptEnabled = document.getElementById('interruptToggle').checked;
+  userSettings.webSearchEnabled = webSearchToggle.checked;
+  userSettings.interruptEnabled = interruptToggle.checked;
   userSettings.model = modelSelect.value;
-  
-  localStorage.setItem('userSettings', JSON.stringify(userSettings));
+  localStorage.setItem("userSettings", JSON.stringify(userSettings));
   console.log("Settings saved:", userSettings);
 }
 
-// Load settings from localStorage and apply them
+// Load settings from localStorage
 function loadSettings() {
-  const savedSettings = localStorage.getItem('userSettings');
-  if (savedSettings) {
-    userSettings = JSON.parse(savedSettings);
-    console.log("Settings loaded:", userSettings);
-    
-    // Apply loaded settings to UI elements
+  var saved = localStorage.getItem("userSettings");
+  if (saved) {
+    userSettings = JSON.parse(saved);
     pitchRange.value = userSettings.pitch;
     pitchValue.innerText = userSettings.pitch;
     rateRange.value = userSettings.rate;
     rateValue.innerText = userSettings.rate;
-    document.getElementById('webSearchToggle').checked = userSettings.webSearchEnabled;
-    document.getElementById('interruptToggle').checked = userSettings.interruptEnabled;
-    // Note: voiceSelect and modelSelect are set later after options are loaded.
+    webSearchToggle.checked = userSettings.webSearchEnabled;
+    interruptToggle.checked = userSettings.interruptEnabled;
   }
+  console.log("Settings loaded:", userSettings);
 }
 
-// Update pitch and rate display and save to localStorage
-pitchRange.addEventListener('input', () => {
-  pitchValue.innerText = pitchRange.value;
-  saveSettings();
-});
-rateRange.addEventListener('input', () => {
-  rateValue.innerText = rateRange.value;
-  saveSettings();
-});
-voiceSelect.addEventListener('change', saveSettings);
-document.getElementById('webSearchToggle').addEventListener('change', saveSettings);
-document.getElementById('interruptToggle').addEventListener('change', saveSettings);
-modelSelect.addEventListener('change', saveSettings);
-
-// Reset localStorage and reload settings
-resetStorageBtn.addEventListener('click', () => {
-  localStorage.removeItem('userSettings');
-  // Reset UI elements to defaults
+// Reset settings and update UI
+function resetSettings() {
+  localStorage.removeItem("userSettings");
   pitchRange.value = 1;
   pitchValue.innerText = 1;
   rateRange.value = 1;
   rateValue.innerText = 1;
-  document.getElementById('webSearchToggle').checked = false;
-  document.getElementById('interruptToggle').checked = true;
-  // For voice and model selections, you might want to reset them as well:
-  voiceSelect.value = 'No Voice';
-  modelSelect.selectedIndex = 0;
+  webSearchToggle.checked = false;
+  interruptToggle.checked = true;
+  voiceSelect.value = "No Voice";
+  if (modelSelect.options.length > 0) {
+    modelSelect.selectedIndex = 0;
+  }
   saveSettings();
-  statusDiv.innerText = 'Settings have been reset.';
+  statusDiv.innerText = "Settings have been reset.";
+}
+
+// Event listeners for settings updates
+pitchRange.addEventListener("input", function() {
+  pitchValue.innerText = pitchRange.value;
+  saveSettings();
 });
+rateRange.addEventListener("input", function() {
+  rateValue.innerText = rateRange.value;
+  saveSettings();
+});
+voiceSelect.addEventListener("change", saveSettings);
+webSearchToggle.addEventListener("change", saveSettings);
+interruptToggle.addEventListener("change", saveSettings);
+modelSelect.addEventListener("change", saveSettings);
+resetStorageBtn.addEventListener("click", resetSettings);
 
 // Append a message to the chat history
 function appendMessage(text, sender) {
-  const messageElem = document.createElement('div');
-  messageElem.classList.add('message');
-  messageElem.classList.add(sender); // "user" or "ai"
-  messageElem.innerText = text;
-  chatHistory.appendChild(messageElem);
+  var div = document.createElement("div");
+  div.className = "message " + sender;
+  div.innerText = text;
+  chatHistory.appendChild(div);
   chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
-// Function to dynamically load models from Pollinations and populate the modelSelect dropdown.
-async function loadModels() {
-  try {
-    const response = await fetch("https://text.pollinations.ai/models");
-    const models = await response.json();
-    let optionsHtml = "";
-    models.forEach(model => {
-      // Use the description as the display text.
-      let optionText = model.description;
-      // Append "(uncensored)" if the model is uncensored.
-      if (model.censored === false) {
-        optionText += " (uncensored)";
+// Load available models and populate the model dropdown
+function loadModels() {
+  fetch("https://text.pollinations.ai/models")
+    .then(function(response) { return response.json(); })
+    .then(function(models) {
+      modelSelect.innerHTML = "";
+      models.forEach(function(model) {
+        var option = document.createElement("option");
+        var text = model.description;
+        if (model.censored === false) { text += " (uncensored)"; }
+        option.value = model.name;
+        option.innerText = text;
+        modelSelect.appendChild(option);
+      });
+      if (userSettings.model) {
+        modelSelect.value = userSettings.model;
       }
-      optionsHtml += `<option value="${model.name}">${optionText}</option>`;
+      console.log("Models loaded:", models);
+    })
+    .catch(function(error) {
+      console.error("Error loading models:", error);
+      statusDiv.innerText = "Failed to load models.";
     });
-    modelSelect.innerHTML = optionsHtml;
-    // If a saved model exists, apply it
-    if (userSettings.model) {
-      modelSelect.value = userSettings.model;
-    }
-    console.log("Models loaded:", models);
-  } catch (error) {
-    console.error("Error loading models:", error);
-    statusDiv.innerText = "Failed to load models.";
-  }
 }
 
-// Populate voice options in the dropdown and restore saved voice if available.
+// Populate voice list and restore selection
 function populateVoiceList() {
-  const voices = speechSynthesis.getVoices();
-  voiceSelect.innerHTML = '';
-  const noVoiceOption = document.createElement('option');
-  noVoiceOption.textContent = 'No Voice';
-  noVoiceOption.value = 'No Voice';
+  var voices = speechSynthesis.getVoices();
+  voiceSelect.innerHTML = "";
+  var noVoiceOption = document.createElement("option");
+  noVoiceOption.value = "No Voice";
+  noVoiceOption.innerText = "No Voice";
   voiceSelect.appendChild(noVoiceOption);
-  voices.forEach(voice => {
-    const option = document.createElement('option');
-    option.textContent = `${voice.name} (${voice.lang})`;
+  voices.forEach(function(voice) {
+    var option = document.createElement("option");
     option.value = voice.name;
+    option.innerText = voice.name + " (" + voice.lang + ")";
     voiceSelect.appendChild(option);
   });
-  // Restore saved voice selection if it exists
   if (userSettings.selectedVoice) {
     voiceSelect.value = userSettings.selectedVoice;
-  } else {
-    const defaultVoice = voices.find(voice => voice.name.includes('Microsoft Zira')) || voices[0];
-    if (defaultVoice) {
-      voiceSelect.value = defaultVoice.name;
-    }
+  } else if (voices.length > 0) {
+    var defaultVoice = voices.find(function(v) {
+      return v.name.indexOf("Microsoft Zira") !== -1;
+    }) || voices[0];
+    if (defaultVoice) { voiceSelect.value = defaultVoice.name; }
   }
-  console.log("Available voices:", voices.map(voice => voice.name));
+  console.log("Available voices:", voices.map(function(v) { return v.name; }));
 }
 
-// --- The rest of your existing code (speech recognition, getAIResponse, speak, etc.) remains unchanged ---
+// Speak the given text using the current settings
+function speak(text) {
+  var utterance = new SpeechSynthesisUtterance(text);
+  utterance.pitch = parseFloat(pitchRange.value);
+  utterance.rate = parseFloat(rateRange.value);
+  var voices = speechSynthesis.getVoices();
+  if (voiceSelect.value !== "No Voice") {
+    var voice = voices.find(function(v) { return v.name === voiceSelect.value; });
+    if (voice) { utterance.voice = voice; }
+  }
+  isTTSActive = true;
+  currentUtterance = utterance;
+  window.speechSynthesis.speak(utterance);
+  utterance.onend = function() {
+    isTTSActive = false;
+    currentUtterance = null;
+    stopTTSBtn.disabled = true;
+    statusDiv.innerText = "Speech synthesis ended.";
+  };
+  stopTTSBtn.disabled = false;
+  statusDiv.innerText = "Speaking...";
+}
 
-// Initialize Speech Recognition if supported
+// Set up speech recognition if supported
 if ("webkitSpeechRecognition" in window) {
   recognition = new webkitSpeechRecognition();
   recognition.lang = "en-US";
   recognition.continuous = true;
   recognition.interimResults = false;
-
-  recognition.onstart = () => {
+  recognition.onstart = function() {
     statusDiv.innerText = "Speech Recognition Started.";
   };
-
-  recognition.onerror = (event) => {
-    console.error("Speech Recognition Error:", event.error);
+  recognition.onerror = function(event) {
     if (event.error !== "no-speech") {
-      lastErrorWasNoSpeech = false;
       errorMsgDiv.innerText = "Speech Recognition Error: " + event.error;
       if (currentUtterance) {
         window.speechSynthesis.cancel();
@@ -158,72 +193,49 @@ if ("webkitSpeechRecognition" in window) {
         isTTSActive = false;
         stopTTSBtn.disabled = true;
       }
-    } else {
-      lastErrorWasNoSpeech = true;
-      console.log("No-speech error; TTS will continue.");
     }
   };
-
-  recognition.onend = () => {
+  recognition.onend = function() {
     statusDiv.innerText = "Speech Recognition Ended.";
-    if (!isListening && currentUtterance) {
-      window.speechSynthesis.cancel();
-      currentUtterance = null;
-      isTTSActive = false;
-      stopTTSBtn.disabled = true;
-    }
-    if (isListening) {
-      recognition.start();
-    } else {
+    if (isListening) { recognition.start(); }
+    else {
       startBtn.disabled = false;
       stopBtn.disabled = true;
     }
   };
-
-  recognition.onresult = async (event) => {
-    lastErrorWasNoSpeech = false;
-    if (interruptToggle.checked && isTTSActive) {
-      window.speechSynthesis.cancel();
-      isTTSActive = false;
-      currentUtterance = null;
-      stopTTSBtn.disabled = true;
-      statusDiv.innerText = "TTS interrupted by user speech.";
-    }
-    for (let i = event.resultIndex; i < event.results.length; i++) {
+  recognition.onresult = function(event) {
+    for (var i = event.resultIndex; i < event.results.length; i++) {
       if (event.results[i].isFinal) {
-        let sentence = event.results[i][0].transcript.trim();
+        var sentence = event.results[i][0].transcript.trim();
         if (sentence) {
           appendMessage("You: " + sentence, "user");
           statusDiv.innerText = "Processing your input...";
-          console.log(`Finalized Sentence: ${sentence}`);
-          try {
-            const aiResponse = await getAIResponse(sentence);
-            appendMessage("AI: " + aiResponse, "ai");
-            speak(aiResponse);
-          } catch (error) {
-            errorMsgDiv.innerText = "Error fetching AI response.";
-          }
+          getAIResponse(sentence)
+            .then(function(aiResponse) {
+              appendMessage("AI: " + aiResponse, "ai");
+              speak(aiResponse);
+            })
+            .catch(function(error) {
+              errorMsgDiv.innerText = "Error fetching AI response.";
+            });
         }
       }
     }
   };
-
-  startBtn.addEventListener("click", () => {
+  startBtn.addEventListener("click", function() {
     isListening = true;
     recognition.start();
     startBtn.disabled = true;
     stopBtn.disabled = false;
   });
-
-  stopBtn.addEventListener("click", () => {
+  stopBtn.addEventListener("click", function() {
     isListening = false;
     recognition.stop();
     startBtn.disabled = false;
     stopBtn.disabled = true;
     statusDiv.innerText = "Speech Recognition stopped.";
   });
-
-  stopTTSBtn.addEventListener("click", () => {
+  stopTTSBtn.addEventListener("click", function() {
     if (currentUtterance) {
       currentUtterance.onend = null;
       window.speechSynthesis.cancel();
@@ -237,101 +249,63 @@ if ("webkitSpeechRecognition" in window) {
   alert("Your browser does not support webkitSpeechRecognition.");
 }
 
-// Function to get AI response from Pollinations using the selected model,
-// enhanced with web search results if the toggle is enabled.
-async function getAIResponse(prompt) {
-  console.log("Received prompt:", prompt);
-  const model = modelSelect.value;
-  const webSearchEnabled = document.getElementById('webSearchToggle').checked;
-  let finalPrompt = prompt;
-  
+// Retrieve AI response from the service
+function getAIResponse(prompt) {
+  var model = modelSelect.value;
+  var webSearchEnabled = webSearchToggle.checked;
+  var finalPrompt = prompt;
   if (webSearchEnabled) {
-    try {
-      let searchQuery = prompt;
-      const searchResponse = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&format=json&no_html=1&skip_disambig=1`);
-      const searchData = await searchResponse.json();
-      console.log("DuckDuckGo API response:", searchData);
-
-      let searchResults = searchData.AbstractText;
-      if (!searchResults || searchResults.trim() === "") {
-        if (searchData.RelatedTopics && searchData.RelatedTopics.length > 0) {
-          searchResults = searchData.RelatedTopics.slice(0, 3)
-            .map(rt => rt.Text)
-            .join("\n");
+    return fetch("https://api.duckduckgo.com/?q=" + encodeURIComponent(prompt) + "&format=json&no_html=1&skip_disambig=1")
+      .then(function(response) { return response.json(); })
+      .then(function(searchData) {
+        var searchResults = searchData.AbstractText;
+        if (!searchResults || searchResults.trim() === "") {
+          if (searchData.RelatedTopics && searchData.RelatedTopics.length > 0) {
+            searchResults = searchData.RelatedTopics.slice(0, 3)
+              .map(function(rt) { return rt.Text; })
+              .join("\n");
+          }
         }
-      }
-      if (!searchResults || searchResults.trim() === "") {
-        searchResults = "No additional information found.";
-      }
-      
-      console.log("searchResults:", searchResults);
-      finalPrompt = prompt + "\n\nUse the following web search summary to answer the question:\n" + searchResults;
-      statusDiv.innerText = "Web search completed and combined with your prompt.";
-    } catch (error) {
-      console.error("Web search error:", error);
-      statusDiv.innerText = "Web search failed; proceeding with original prompt.";
-    }
-  }
-
-  console.log("Final prompt being sent to AI:", finalPrompt);
-  
-  const response = await fetch(`https://text.pollinations.ai/${model}/${encodeURIComponent(finalPrompt)}`);
-  const data = await response.text();
-  
-  console.log("AI response data:", data);
-  
-  return data;
-}
-
-// Function to speak the AI response
-function speak(text) {
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.pitch = parseFloat(pitchRange.value);
-  utterance.rate = parseFloat(rateRange.value);
-  const selectedVoiceName = voiceSelect.value;
-  const voices = speechSynthesis.getVoices();
-
-  if (!voices.length) {
-    console.error('No voices available. Retrying...');
-    setTimeout(() => speak(text), 100);
-    return;
-  }
-
-  console.log("Selected voice:", selectedVoiceName);
-  console.log("Available voices:", voices.map(voice => voice.name));
-
-  if (selectedVoiceName !== 'No Voice') {
-    const voice = voices.find(voice => voice.name === selectedVoiceName);
-    if (voice) {
-      utterance.voice = voice;
-    } else {
-      console.error('Selected voice not found, using default voice.');
-      utterance.voice = voices.find(voice => voice.name.includes('Microsoft Zira')) || voices[0];
-    }
-    console.log(`Using voice: ${utterance.voice ? utterance.voice.name : 'default voice'}`);
-    isTTSActive = true;
-    window.speechSynthesis.speak(utterance);
-    currentUtterance = utterance;
-    stopTTSBtn.disabled = false;
-    statusDiv.innerText = "Speaking...";
-
-    utterance.onend = () => {
-      isTTSActive = false;
-      currentUtterance = null;
-      stopTTSBtn.disabled = true;
-      statusDiv.innerText = "Speech synthesis ended.";
-    };
+        if (!searchResults || searchResults.trim() === "") {
+          searchResults = "No additional information found.";
+        }
+        finalPrompt = prompt + "\n\nUse the following web search summary to answer the question:\n" + searchResults;
+        statusDiv.innerText = "Web search completed and combined with your prompt.";
+        return fetch("https://text.pollinations.ai/" + model + "/" + encodeURIComponent(finalPrompt));
+      })
+      .then(function(response) { return response.text(); });
   } else {
-    console.log("TTS is turned off.");
-    statusDiv.innerText = "TTS is turned off.";
+    return fetch("https://text.pollinations.ai/" + model + "/" + encodeURIComponent(finalPrompt))
+      .then(function(response) { return response.text(); });
   }
 }
 
-// Initialize settings, voice list, and load models on page load.
-window.onload = () => {
+// Set up text input send functionality
+sendBtn.addEventListener("click", function() {
+  var text = textInput.value.trim();
+  if (text) {
+    appendMessage("You: " + text, "user");
+    statusDiv.innerText = "Processing your input...";
+    getAIResponse(text)
+      .then(function(aiResponse) {
+        appendMessage("AI: " + aiResponse, "ai");
+        speak(aiResponse);
+      })
+      .catch(function(error) {
+        errorMsgDiv.innerText = "Error fetching AI response.";
+      });
+    textInput.value = "";
+  }
+});
+textInput.addEventListener("keyup", function(event) {
+  if (event.key === "Enter") { sendBtn.click(); }
+});
+
+// Initialize settings, voice list, and models on window load
+window.onload = function() {
   loadSettings();
-  populateVoiceList();  // Restores voice selection from userSettings if available.
-  loadModels();         // Restores model selection from userSettings if available.
+  populateVoiceList();
+  loadModels();
   if (speechSynthesis.onvoiceschanged !== undefined) {
     speechSynthesis.onvoiceschanged = populateVoiceList;
   }
