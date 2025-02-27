@@ -1,8 +1,8 @@
-// speech.js content
 export let currentUtterance = null;
 export let isTTSActive = false;
 let recognition = null;
 export let isListening = false;
+let lastTranscription = '';
 
 export function initSpeechRecognition() {
   if ("webkitSpeechRecognition" in window) {
@@ -41,15 +41,9 @@ export function initSpeechRecognition() {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           let sentence = event.results[i][0].transcript.trim();
-          if (sentence) {
-            const chatHistory = document.getElementById('chatHistory');
-            const lastMessage = chatHistory.lastElementChild;
-            if (!lastMessage || lastMessage.innerText !== `You: ${sentence}`) {
-              const messageElem = document.createElement('div');
-              messageElem.classList.add('message', 'user');
-              messageElem.innerText = `You: ${sentence}`;
-              chatHistory.appendChild(messageElem);
-            }
+          // Process only if the sentence is new
+          if (sentence && sentence !== lastTranscription) {
+            lastTranscription = sentence;
             document.getElementById('status').innerText = "Processing your input...";
             if (window.processUserInput) {
               await window.processUserInput(sentence);
