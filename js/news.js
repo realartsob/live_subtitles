@@ -17,7 +17,7 @@ export async function initNewsTicker() {
 
 async function fetchFeedHeadlines(feedUrl) {
   try {
-    // Use the convertRssToJson function from api.js to fetch and convert the RSS feed to JSON
+    // Use convertRssToJson to fetch and convert the RSS feed to JSON using your API key
     const data = await convertRssToJson(feedUrl);
     if (data.status !== "ok") {
       console.error("Error fetching feed via rss2json:", data);
