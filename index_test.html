@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test rss2json API</title>
+  <!-- Load jQuery from CDN -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+    h1 { color: #333; }
+    #result { margin-top: 20px; padding: 10px; background: #fff; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>Test rss2json API</h1>
+  <div id="result">Loading feed...</div>
+  
+  <script>
+    $.ajax({
+      url: 'https://api.rss2json.com/v1/api.json',
+      method: 'GET',
+      dataType: 'json',
+      data: {
+        rss_url: 'https://news.ycombinator.com/rss', // RSS feed URL (needs to be escaped by the API)
+        api_key: '2mbclpf6gedmku79ixilmwuxtlzacdk72qop3sis', // Replace with your valid API key
+        count: 2 // Number of feed items to return
+      }
+    }).done(function(response) {
+      if(response.status !== 'ok'){
+        throw new Error(response.message);
+      }
+      console.log('====== ' + response.feed.title + ' ======');
+      response.items.forEach(function(item) {
+        console.log(item.title);
+      });
+      
+      // Display the feed title and headlines on the page
+      let html = '<h2>' + response.feed.title + '</h2><ul>';
+      response.items.forEach(function(item) {
+        html += '<li>' + item.title + '</li>';
+      });
+      html += '</ul>';
+      $('#result').html(html);
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+      console.error("Error: " + textStatus, errorThrown);
+      $('#result').html('<p>Error: ' + textStatus + '</p>');
+    });
+  </script>
+</body>
+</html>
