@@ -59,7 +59,8 @@ export async function convertRssToJson(rssUrl, detailed = false) {
   const apiKey = "2mbclpf6gedmku79ixilmwuxtlzacdk72qop3sis";
   const endpoint = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&api_key=${apiKey}&detailed=${detailed}`;
   try {
-    const response = await fetch(endpoint);
+    // Force CORS mode in case the endpoint supports it
+    const response = await fetch(endpoint, { mode: 'cors' });
     if (!response.ok) {
       throw new Error(`RSS2JSON API error: ${response.status} ${response.statusText}`);
     }
