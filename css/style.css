@@ -1,0 +1,75 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background-color: #202020;
+  color: #ffffff;
+  text-align: center;
+}
+.chat-container {
+  max-width: 80%;
+  margin: 20px auto;
+  background-color: #333333;
+  border-radius: 5px;
+  padding: 10px;
+  text-align: left;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.message {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+}
+.user {
+  background-color: #555555;
+  text-align: right;
+}
+.ai {
+  background-color: #777777;
+  text-align: left;
+}
+#status, #errorMsg {
+  font-size: 16px;
+  margin-top: 10px;
+  padding: 5px;
+  background-color: #222;
+  border-radius: 5px;
+}
+button {
+  margin: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #333333;
+  color: #ffffff;
+  border: 1px solid #555555;
+  border-radius: 5px;
+  cursor: pointer;
+}
+button:hover {
+  background-color: #c4c4c4;
+}
+select, input[type="range"], input[type="text"] {
+  margin: 10px;
+  padding: 10px;
+  font-size: 16px;
+  background-color: #333333;
+  color: #ffffff;
+  border: 1px solid #555555;
+  border-radius: 5px;
+}
+.toggle-container, .settings-container, .control-container {
+  margin: 20px;
+  font-size: 16px;
+}
+label {
+  margin-right: 10px;
+}
+.text-input-container {
+  max-width: 80%;
+  margin: 10px auto;
+  display: flex;
+  justify-content: center;
+}
+.text-input-container input {
+  flex: 1;
+}
